@@ -59,18 +59,20 @@ public class ClienteServlet extends HttpServlet {
 
             String dpi = req.getParameter("dpi");
             String nombre = req.getParameter("nombre");
+            String fecha_nacimiento = req.getParameter("fecha_nacimiento");
             String telefono = req.getParameter("telefono");
             String email = req.getParameter("email");
             String nacionalidad = req.getParameter("nacionalidad");
 
-            String sql = "INSERT INTO cliente (dpi, nombre, telefono, email, nacionalidad) VALUES (?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO cliente (dpi, nombre, fecha_nacimiento, telefono, email, nacionalidad) VALUES (?, ?, ?, ?, ?, ?)";
 
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, dpi);
             stmt.setString(2, nombre);
-            stmt.setString(3, telefono);
-            stmt.setString(4, email);
-            stmt.setString(5, nacionalidad);
+            stmt.setString(3, fecha_nacimiento);
+            stmt.setString(4, telefono);
+            stmt.setString(5, email);
+            stmt.setString(6, nacionalidad);
 
             stmt.executeUpdate();
 
@@ -110,25 +112,72 @@ public class ClienteServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPatch(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-        String sql = """
-            UPDATE cliente
-            SET nacionalidad = ?
-            WHERE dpi = ?
-        """;
+        resp.setContentType("text/plain");
 
-        try (Connection conn = ConexionDB.getConexion();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexionDB.getConexion()) {
 
-            ps.setString(1, "Aleman");
-            ps.setString(2, "999");
+            String dpi = req.getParameter("dpi");
+            String telefono = req.getParameter("telefono");
 
-            ps.executeUpdate();
+            if (dpi == null || telefono == null) {
+                resp.getWriter().write("Faltan parametros");
+                return;
+            }
 
-        } catch (SQLException e) {
+            String sql = "UPDATE cliente SET telefono=? WHERE dpi=?";
+
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, telefono);
+            stmt.setString(2, dpi);
+
+            int rows = stmt.executeUpdate();
+
+            if (rows > 0) {
+                resp.getWriter().write("Telefono actualizado");
+            } else {
+                resp.getWriter().write("Cliente no encontrado");
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
+            resp.getWriter().write("Error: " + e.getMessage());
         }
     }
 
+    /*
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+        resp.setContentType("text/plain");
+
+        String sql = "UPDATE cliente SET telefono = ? WHERE dpi = ? ";
+
+
+
+        try (Connection conn = ConexionDB.getConexion()){
+
+            String telefono = req.getParameter("telefono");
+
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setString(1, "39015129");
+
+            int filas = ps.executeUpdate();
+
+
+            if (filas > 0) {
+                resp.getWriter().write("Número de cliente actualizado");
+            } else {
+                resp.getWriter().write("No se encontró el cliente");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            resp.getWriter().write("Error: " + e.getMessage());
+        }
+    }
+*/
 }
