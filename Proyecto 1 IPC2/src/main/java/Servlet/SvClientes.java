@@ -1,16 +1,14 @@
 package Servlet;
 
 import BaseDatos.ConexionDB;
-import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.WebServlet;
 import java.io.IOException;
 import java.sql.*;
-        import java.util.ArrayList;
 
 
 @WebServlet("/clientes")
-public class ClienteServlet extends HttpServlet {
+public class SvClientes extends HttpServlet {
 
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
@@ -51,9 +49,9 @@ public class ClienteServlet extends HttpServlet {
 
 
     @Override
-    public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         System.out.println("POST ejecutado");
-        resp.setContentType("text/plain");
+        resp.setContentType("application/json");
 
         try (Connection conn = ConexionDB.getConexion()) {
 
@@ -87,7 +85,7 @@ public class ClienteServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-        resp.setContentType("text/plain");
+        resp.setContentType("application/json");
 
         String dpi = req.getParameter("dpi");
 
@@ -114,7 +112,7 @@ public class ClienteServlet extends HttpServlet {
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-        resp.setContentType("text/plain");
+        resp.setContentType("application/json");
 
         try (Connection conn = ConexionDB.getConexion()) {
 
