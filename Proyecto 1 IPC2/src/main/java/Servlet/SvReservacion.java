@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 
 @WebServlet("/reservaciones")
@@ -16,8 +17,7 @@ public class SvReservacion extends HttpServlet {
 
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
@@ -32,16 +32,33 @@ public class SvReservacion extends HttpServlet {
             String codigo = "RES" + System.currentTimeMillis();
 
             if(codigo.length() >= 10){
-
                 codigo = codigo.substring(0, 10);
+            }
+            int idUsuario = 1;
 
+
+            // - - - -
+            String sqlPrecio = "SELECT precio FROM paquete WHERE id_paquete = ?";
+            PreparedStatement stmtPrecio = conn.prepareStatement(sqlPrecio);
+            stmtPrecio.setInt(1, Integer.parseInt(idPaquete));
+
+            ResultSet rs = stmtPrecio.executeQuery();
+
+            double precio = 0;
+
+            if (rs.next()) {
+                precio = rs.getDouble("precio");
             }
 
+            int cantidadPersonas = Integer.parseInt(cantidad);
+
+            double costoTotal = precio * cantidadPersonas;
+
+            // - - - -
 
 
 
-            // 🔥 Usuario fijo (temporal)
-            int idUsuario = 1;
+
 
             String sql = """
             INSERT INTO reservacion 
@@ -57,8 +74,7 @@ public class SvReservacion extends HttpServlet {
             stmt.setInt(4, idUsuario);
             stmt.setInt(5, Integer.parseInt(cantidad));
 
-            // costo temporal
-            stmt.setDouble(6, 0.0);
+            stmt.setDouble(6, costoTotal);
 
             stmt.setString(7, "PENDIENTE");
 
