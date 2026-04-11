@@ -1,181 +1,132 @@
 package Servlet;
 
+import BaseDatos.ClienteDB;
 import BaseDatos.ConexionDB;
+import Modelos.Cliente;
+import Servicios.ClienteServicios;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.WebServlet;
 import java.io.IOException;
+import java.io.PrintWriter;
+import com.google.gson.Gson;
 import java.sql.*;
+import java.util.List;
 
 
-@WebServlet("/clientes")
+@WebServlet("/clientes/*")
 public class SvClientes extends HttpServlet {
 
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-
-        resp.setContentType("application/json");
-
-        StringBuilder json = new StringBuilder("[");
-        boolean first = true;
-
-        try (Connection conn = ConexionDB.getConexion()) {
-
-            String sql = "SELECT dpi, nombre, telefono, email FROM cliente";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-
-            while (rs.next()) {
-
-                if (!first) json.append(",");
-                first = false;
-
-                json.append("{")
-                        .append("\"dpi\":\"").append(rs.getString("dpi")).append("\",")
-                        .append("\"nombre\":\"").append(rs.getString("nombre")).append("\",")
-                        .append("\"telefono\":\"").append(rs.getString("telefono")).append("\",")
-                        .append("\"correo\":\"").append(rs.getString("email")).append("\"")
-
-
-                        .append("}");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        json.append("]");
-        resp.getWriter().write(json.toString());
-    }
-
-
-
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        System.out.println("POST ejecutado");
-        resp.setContentType("application/json");
-
-        try (Connection conn = ConexionDB.getConexion()) {
-
-            String dpi = req.getParameter("dpi");
-            String nombre = req.getParameter("nombre");
-            String fecha_nacimiento = req.getParameter("fecha_nacimiento");
-            String telefono = req.getParameter("telefono");
-            String email = req.getParameter("email");
-            String nacionalidad = req.getParameter("nacionalidad");
-
-            String sql = "INSERT INTO cliente (dpi, nombre, fecha_nacimiento, telefono, email, nacionalidad) VALUES (?, ?, ?, ?, ?, ?)";
-
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, dpi);
-            stmt.setString(2, nombre);
-            stmt.setString(3, fecha_nacimiento);
-            stmt.setString(4, telefono);
-            stmt.setString(5, email);
-            stmt.setString(6, nacionalidad);
-
-            stmt.executeUpdate();
-
-            resp.getWriter().write("Cliente insertado");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp.getWriter().write("Error: ----------------NO SE PUDO" + e.getMessage());
-        }
-    }
-
-    @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-
-        resp.setContentType("application/json");
-
-        String dpi = req.getParameter("dpi");
-
-        try (Connection conn = ConexionDB.getConexion()) {
-
-            String sql = "DELETE FROM cliente WHERE dpi = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, dpi);
-
-            int rows = stmt.executeUpdate();
-
-            if (rows > 0) {
-                resp.getWriter().write("Cliente eliminado");
-            } else {
-                resp.getWriter().write("No se encontró el cliente");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp.getWriter().write("Error: " + e.getMessage());
-        }
-    }
-
-    @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-
-        resp.setContentType("application/json");
-
-        try (Connection conn = ConexionDB.getConexion()) {
-
-            String dpi = req.getParameter("dpi");
-            String telefono = req.getParameter("telefono");
-
-            if (dpi == null || telefono == null) {
-                resp.getWriter().write("Faltan parametros");
-                return;
-            }
-
-            String sql = "UPDATE cliente SET telefono=? WHERE dpi=?";
-
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, telefono);
-            stmt.setString(2, dpi);
-
-            int rows = stmt.executeUpdate();
-
-            if (rows > 0) {
-                resp.getWriter().write("Telefono actualizado");
-            } else {
-                resp.getWriter().write("Cliente no encontrado");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            resp.getWriter().write("Error: " + e.getMessage());
-        }
-    }
+    private final ClienteServicios servicio = new ClienteServicios();
+    private final Gson gson = new Gson();
 
     /*
     @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doOptions(HttpServletRequest req, HttpServletResponse res) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        res.setStatus(HttpServletResponse.SC_OK);
 
-        resp.setContentType("text/plain");
+    }/*/
 
-        String sql = "UPDATE cliente SET telefono = ? WHERE dpi = ? ";
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String pathInfo = req.getPathInfo();
+
+        try {
+            if (pathInfo == null) {
+                List<Cliente> clientes = servicio.obtenerTodos();
+                resp.getWriter().write(new Gson().toJson(clientes));
+            }else{
+                String dpi = pathInfo.substring(1);
+                Cliente cliente = servicio.obtener(dpi);
 
 
-
-        try (Connection conn = ConexionDB.getConexion()){
-
-            String telefono = req.getParameter("telefono");
-
-            PreparedStatement ps = conn.prepareStatement(sql);
-
-            ps.setString(1, "39015129");
-
-            int filas = ps.executeUpdate();
-
-
-            if (filas > 0) {
-                resp.getWriter().write("Número de cliente actualizado");
-            } else {
-                resp.getWriter().write("No se encontró el cliente");
+                if(cliente ==null){
+                    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                resp.getWriter().write(new Gson().toJson(cliente));
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
 
-            resp.getWriter().write("Error: " + e.getMessage());
+            System.out.println("No se pudo conectar - clientes");
+            e.printStackTrace();
         }
     }
-*/
+
+
+
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
+
+        try {
+            Cliente cliente = gson.fromJson(req.getReader(), Cliente.class);
+            Cliente creado = servicio.crear(cliente);
+
+            if(creado.getDpi().equals("") || creado.getDpi() == null){
+                return;
+            }
+            if(creado.getNombre().equals("") || creado.getNombre() == null){
+                return;
+            }
+            if(creado.getNacionalidad().equals("") || creado.getNacionalidad() == null){
+                return;
+            }
+            if(creado.getEmail().equals("") || creado.getEmail() == null){
+                return;
+            }
+            res.setStatus(201);
+            res.getWriter().write(gson.toJson(creado));
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
+
+        try {
+            Cliente cliente = gson.fromJson(req.getReader(), Cliente.class);
+            Cliente actualizado = servicio.actualizar(cliente);
+
+            res.getWriter().write(gson.toJson(actualizado));
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException {
+
+        String pathInfo = req.getPathInfo(); // /123
+
+        if (pathInfo == null || pathInfo.equals("/")) {
+            res.setStatus(400);
+            return;
+        }
+        String dpi = pathInfo.substring(1);
+
+        try {
+            servicio.eliminar(dpi);
+            res.setStatus(204);
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
+
+
+
+
+
 }

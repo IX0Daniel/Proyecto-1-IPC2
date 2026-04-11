@@ -1,6 +1,13 @@
 package Servlet;
 
+import BaseDatos.ClienteDB;
 import BaseDatos.ConexionDB;
+import BaseDatos.DestinoDB;
+import Modelos.Cliente;
+import Modelos.Destino;
+import Servicios.ClienteServicios;
+import Servicios.DestinoServicios;
+import com.google.gson.Gson;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,75 +18,101 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 
 
-@WebServlet("/destinos")
+@WebServlet("/destinos/*")
 public class SvDestino extends HttpServlet {
+
+    private final DestinoServicios servicio = new DestinoServicios();
+    private final Gson gson = new Gson();
+    private DestinoDB destinoDB = new DestinoDB();
+
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
         resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        String pathInfo = req.getPathInfo();
 
-        StringBuilder json = new StringBuilder("[");
-        boolean first = true;
+        try {
+            if (pathInfo == null) {
+                List<Destino> destinos = destinoDB.getAll();
+                resp.getWriter().write(new Gson().toJson(destinos));
+            }else{
+                int id_destino = Integer.parseInt(pathInfo.substring(1));
+                Destino destino = destinoDB.getByID(id_destino);
 
-        try (Connection conn = ConexionDB.getConexion()) {
-
-            String sql = "SELECT nombre, pais, descripcion FROM destino";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-
-            while (rs.next()) {
-
-                if (!first) json.append(",");
-                first = false;
-
-                json.append("{")
-                        .append("\"nombre\":\"").append(rs.getString("nombre")).append("\",")
-                        .append("\"pais\":\"").append(rs.getString("pais")).append("\",")
-                        .append("\"descripcion\":\"").append(rs.getString("descripcion")).append("\"")
-
-
-                        .append("}");
+                if(destino ==null){
+                    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                resp.getWriter().write(new Gson().toJson(destino));
             }
 
         } catch (Exception e) {
+
+            System.out.println("No se pudo conectar");
             e.printStackTrace();
         }
-
-        json.append("]");
-        resp.getWriter().write(json.toString());
     }
 
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        System.out.println("POST ejecutado");
-        resp.setContentType("application/json");
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setContentType("application/json");
 
-        try (Connection conn = ConexionDB.getConexion()) {
+        try {
+            Destino destino = gson.fromJson(request.getReader(), Destino.class);
+            Destino creado = servicio.crear(destino);
 
-            String nombre = req.getParameter("nombre");
-            String pais = req.getParameter("pais");
-            String descripcion = req.getParameter("descripcion");
 
-            String sql = "INSERT INTO destino (nombre, pais, descripcion) VALUES (?, ?, ?)";
-
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, nombre);
-            stmt.setString(2, pais);
-            stmt.setString(3, descripcion);
-
-            stmt.executeUpdate();
-
-            resp.getWriter().write("Destino insertado");
-
+            response.setStatus(201);
+            response.getWriter().write(gson.toJson(creado));
         } catch (Exception e) {
             e.printStackTrace();
-            resp.getWriter().write("Error: ----------------NO SE PUDO" + e.getMessage());
+            response.setStatus(500);
+            response.getWriter().write(gson.toJson("Error: " + e.getMessage()));
         }
     }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
+
+        try {
+            Destino destino = gson.fromJson(req.getReader(), Destino.class);
+            Destino actualizado = servicio.actualizar(destino);
+            res.getWriter().write(gson.toJson(actualizado));
+
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException {
+
+        String pathInfo = req.getPathInfo();
+
+        if (pathInfo == null || pathInfo.equals("/")) {
+            res.setStatus(400);
+            return;
+        }
+        String id_destino = pathInfo.substring(1);
+
+        try {
+            servicio.eliminar(id_destino);
+            res.setStatus(204);
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
+
 
 
 

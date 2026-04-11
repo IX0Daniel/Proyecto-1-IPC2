@@ -1,100 +1,111 @@
 package Servlet;
 
 
-import BaseDatos.ConexionDB;
+import Modelos.Cliente;
+import Modelos.Paquete;
+import Servicios.PaqueteServicios;
+import com.google.gson.Gson;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @WebServlet("/paquetes")
 public class SvPaquetes extends HttpServlet {
 
+    private final PaqueteServicios servicio = new PaqueteServicios();
+    private final Gson gson = new Gson();
+
+
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException{
 
-        response.setContentType("aplication/json");
+        response.setContentType("application/json");
 
-        StringBuilder json = new StringBuilder("[");
-        boolean first = true;
+        response.setCharacterEncoding("UTF-8");
+        String pathInfo = request.getPathInfo();
 
-        try (Connection conn = ConexionDB.getConexion()) {
+        try {
+            if (pathInfo == null) {
+                List<Paquete> paquetes = servicio.obtenerTodos();
+                response.getWriter().write(new Gson().toJson(paquetes));
+            }else{
+                int id = Integer.parseInt( pathInfo.substring(1));
+                Paquete paquete = servicio.obtener(id);
 
-            String sql = "SELECT nombre, id_destino, duracion, precio, capacidad, estado FROM paquete";
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery(sql);
-
-            while (rs.next()) {
-
-                if (!first) json.append(",");
-                first = false;
-
-                json.append("{")
-                        .append("\"nombre\":\"").append(rs.getString("nombre")).append("\",")
-                        .append("\"id_destino\":\"").append(rs.getString("id_destino")).append("\",")
-                        .append("\"duracion\":\"").append(rs.getString("duracion")).append("\"")
-                        .append("\"precio\":\"").append(rs.getString("precio")).append("\",")
-                        .append("\"capacidad\":\"").append(rs.getString("capacidad")).append("\",")
-                        .append("\"estado\":\"").append(rs.getString("estado")).append("\"")
-
-
-
-                        .append("}");
+                if(paquete ==null){
+                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                response.getWriter().write(new Gson().toJson(paquete));
             }
 
         } catch (Exception e) {
+
+            System.out.println("No se pudo conectar :VV:V.vV.v");
             e.printStackTrace();
         }
 
-        json.append("]");
-        response.getWriter().write(json.toString());
+    }
 
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
 
+        try {
+
+            String body = req.getReader().lines().collect(Collectors.joining());
+            Paquete paquete = gson.fromJson(body, Paquete.class);
+            Paquete creado = servicio.crear(paquete);
+
+            res.setStatus(201);
+            res.getWriter().write(gson.toJson(creado));
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
     }
 
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException{
+    protected void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException {
 
-        response.setContentType("aplication/json");
+        String pathInfo = req.getPathInfo();
 
-        try (Connection connection = ConexionDB.getConexion()){
-
-            String nombre = request.getParameter("nombre");
-            String id_destino = request.getParameter("id_destino");
-            String duracion = request.getParameter("duracion");
-            String precio = request.getParameter("precio");
-            String capacidad = request.getParameter("capacidad");
-            String estado = request.getParameter("estado");
-
-            String sql = "INSERT INTO paquete (nombre, id_destino, duracion, precio, capacidad, estado) VALUES (?, ?, ?, ?, ? ,?)";
-
-            PreparedStatement stmt = connection.prepareStatement(sql);
-            stmt.setString(1, nombre);
-            stmt.setInt(2, Integer.parseInt(id_destino));
-            stmt.setInt(3, Integer.parseInt(duracion));
-            stmt.setInt(4, Integer.parseInt(precio));
-            stmt.setInt(5, Integer.parseInt(capacidad));
-            stmt.setBoolean(6, Boolean.parseBoolean(estado));
-
-            stmt.executeUpdate();
-
-            response.getWriter().write("Paquete insertado");
-
-
-        }catch (Exception e) {
-            e.printStackTrace();
-            response.getWriter().write("Error: ----------------NO SE PUDO" + e.getMessage());
+        if (pathInfo == null || pathInfo.equals("/")) {
+            res.setStatus(400);
+            return;
         }
 
+        int id_paquete = Integer.parseInt(pathInfo.substring(1));
 
+        try {
+            servicio.eliminar(id_paquete);
+            res.setStatus(204);
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
+    }
 
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
+
+        try {
+            Paquete paquete = gson.fromJson(request.getReader(), Paquete.class);
+            Paquete actualizado = servicio.actualizar(paquete);
+
+            res.getWriter().write(gson.toJson(actualizado));
+        } catch (Exception e) {
+            res.setStatus(500);
+            res.getWriter().write(gson.toJson("Error: " + e.getMessage()));
+        }
     }
 
 
