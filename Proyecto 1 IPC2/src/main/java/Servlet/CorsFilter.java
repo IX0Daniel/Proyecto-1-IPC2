@@ -30,11 +30,5 @@ public class CorsFilter implements Filter {
         chain.doFilter(request, response);
 
 
-        /* 🔥 CLAVE: manejar OPTIONS aquí
-        if (req.getMethod().equalsIgnoreCase("OPTIONS")) {
-            res.setStatus(HttpServletResponse.SC_OK);
-            return;
-        }*/
-
     }
 }

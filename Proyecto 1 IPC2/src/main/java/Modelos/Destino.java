@@ -15,22 +15,27 @@ public class Destino {
     }
 
     public int getId_destino() {
+
         return id_destino;
     }
 
     public void setId_destino(int id_destino) {
+
         this.id_destino = id_destino;
     }
 
     public String getNombre() {
+
         return nombre;
     }
 
     public void setNombre(String nombre) {
+
         this.nombre = nombre;
     }
 
     public String getPais() {
+
         return pais;
     }
 

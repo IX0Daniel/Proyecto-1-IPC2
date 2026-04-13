@@ -12,7 +12,6 @@ public class ConexionDB {
 
     public static Connection getConexion() throws SQLException{
 
-        //return DriverManager.getConnection(URL, USERNAME, PASSWORD);
 
         try {
             Class.forName("org.mariadb.jdbc.Driver");

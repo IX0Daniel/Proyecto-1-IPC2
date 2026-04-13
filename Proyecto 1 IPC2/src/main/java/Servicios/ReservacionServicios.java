@@ -23,17 +23,14 @@ public class ReservacionServicios {
             throw new RuntimeException("Paquete no existe");
         }
 
-        // 2. Validar capacidad
         if (req.getClientes().size() > paquete.getCapacidad()) {
             System.out.println("Capacidad excedida");
 
             throw new RuntimeException("Capacidad excedida");
         }
 
-        // 3. Calcular costo
         double costoTotal = paquete.getPrecio() * req.getClientes().size();
 
-        // 4. Crear reservación
         int idReservacion = reservacionDB.crearReservacion(
                 req.getFechaViaje(),
                 req.getIdPaquete(),
@@ -42,7 +39,6 @@ public class ReservacionServicios {
                 costoTotal
         );
 
-        // 5. Insertar clientes
         for (String dpi : req.getClientes()) {
             reservacionDB.insertarCliente(idReservacion, dpi);
         }

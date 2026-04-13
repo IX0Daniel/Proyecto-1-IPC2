@@ -1,57 +1,54 @@
 package Servlet;
 
-import BaseDatos.ConexionDB;
+import Modelos.Usuario;
+import Requests.LoginRequest;
+import Servicios.UsuarioServicios;
+import com.google.gson.Gson;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.util.stream.Collectors;
 
 
-@WebServlet("/usuarios")
+@WebServlet("/login")
 public class SvUsuario extends HttpServlet {
 
-    /*
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response){
-    }*/
+    private final UsuarioServicios servicio = new UsuarioServicios();
+    private final Gson gson = new Gson();
+
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        res.setContentType("application/json");
+        res.setCharacterEncoding("UTF-8");
 
-        System.out.println("POST ejecutado");
-        response.setContentType("application/json");
+        try {
+            String body = req.getReader().lines().collect(Collectors.joining());
+            LoginRequest request = gson.fromJson(body, LoginRequest.class);
+            Usuario usuario = servicio.login(request.username, request.password);
 
-        try (Connection conn = ConexionDB.getConexion()) {
 
-            String username = request.getParameter("username");
-            String password = request.getParameter("password");
-            String id_rol = request.getParameter("id_rol");
+            if (usuario == null) {
+                res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                res.getWriter().write("{\"error\":\"Credenciales incorrectas\"}");
+                return;
+            }
 
-            String sql = "INSERT INTO usuario (username, password, id_rol) VALUES (?, ?, ?)";
+            HttpSession session = req.getSession();
+            session.setAttribute("usuario", usuario);
 
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            stmt.setString(2, password);
-            stmt.setInt(3, Integer.parseInt(id_rol));
-
-            stmt.executeUpdate();
-
-            response.getWriter().write("Usuario insertado");
+            res.setStatus(200);
+            res.getWriter().write(gson.toJson(usuario));
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().write("Error: ----------------NO SE PUDO" + e.getMessage());
+            res.setStatus(500);
+            res.getWriter().write("{\"error\":\"Error en login\"}");
         }
-
-
-
     }
-
 
 }

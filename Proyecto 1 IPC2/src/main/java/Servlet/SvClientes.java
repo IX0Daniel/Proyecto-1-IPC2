@@ -19,16 +19,6 @@ public class SvClientes extends HttpServlet {
     private final ClienteServicios servicio = new ClienteServicios();
     private final Gson gson = new Gson();
 
-    /*
-    @Override
-    protected void doOptions(HttpServletRequest req, HttpServletResponse res) {
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        res.setStatus(HttpServletResponse.SC_OK);
-
-    }/*/
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
@@ -45,7 +35,7 @@ public class SvClientes extends HttpServlet {
                 Cliente cliente = servicio.obtener(dpi);
 
 
-                if(cliente ==null){
+                if(cliente == null){
                     resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
@@ -108,7 +98,7 @@ public class SvClientes extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException {
 
-        String pathInfo = req.getPathInfo(); // /123
+        String pathInfo = req.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/")) {
             res.setStatus(400);

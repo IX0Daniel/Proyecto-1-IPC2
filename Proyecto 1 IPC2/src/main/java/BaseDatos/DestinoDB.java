@@ -52,12 +52,9 @@ public class DestinoDB {
         try (Connection con = ConexionDB.getConexion();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
 
-
-
             ps.setString(1, nombre);
             ps.setString(2, pais);
             ps.setString(3, descripcion);
-
             ps.executeUpdate();
 
             int idGenerado = 0;
@@ -66,13 +63,9 @@ public class DestinoDB {
                     idGenerado = rs.getInt(1);
                 }
             }
-
-
-
             return new Destino(idGenerado, nombre, pais, descripcion);
         }
     }
-
 
     public Destino update(int id_destino, String nombre, String pais, String descripcion) throws SQLException {
         System.out.println("Se va a actualizar un destino: " + id_destino + " - "+ nombre+ " - " + pais + " - " + descripcion);
